@@ -41,6 +41,7 @@ type Dogstatsd struct {
 	timings    *lv.Space
 	histograms *lv.Space
 	logger     log.Logger
+	lvs        lv.LabelValues
 }
 
 // New returns a Dogstatsd object that may be used to create metrics. Prefix is
@@ -58,12 +59,19 @@ func New(prefix string, logger log.Logger) *Dogstatsd {
 	}
 }
 
+// With provides global tags for datadog
+func (d *Dogstatsd) With(labelValues ...string) *Dogstatsd {
+	d.lvs = d.lvs.With(labelValues...)
+	return d
+}
+
 // NewCounter returns a counter, sending observations to this Dogstatsd object.
 func (d *Dogstatsd) NewCounter(name string, sampleRate float64) *Counter {
 	d.rates.Set(d.prefix+name, sampleRate)
 	return &Counter{
 		name: d.prefix + name,
 		obs:  d.counters.Observe,
+		lvs:  d.lvs,
 	}
 }
 
@@ -73,6 +81,7 @@ func (d *Dogstatsd) NewGauge(name string) *Gauge {
 		name: d.prefix + name,
 		obs:  d.gauges.Observe,
 		add:  d.gauges.Add,
+		lvs:  d.lvs,
 	}
 }
 
@@ -83,6 +92,7 @@ func (d *Dogstatsd) NewTiming(name string, sampleRate float64) *Timing {
 	return &Timing{
 		name: d.prefix + name,
 		obs:  d.timings.Observe,
+		lvs:  d.lvs,
 	}
 }
 
@@ -93,6 +103,7 @@ func (d *Dogstatsd) NewHistogram(name string, sampleRate float64) *Histogram {
 	return &Histogram{
 		name: d.prefix + name,
 		obs:  d.histograms.Observe,
+		lvs:  d.lvs,
 	}
 }
 
